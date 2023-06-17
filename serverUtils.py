@@ -1,7 +1,11 @@
 #!flask/bin/python
+import re
+
 from flask import Flask, jsonify, abort, request, make_response, url_for
-from callerid_endpoint import aviv
 from csv_fetcher import init_data, get_by_phone_number, delete_by_phone_number
+from flask_parameter_validation import ValidateParameters, Query
+from typing import Optional
+
 
 app = Flask(__name__, static_url_path="")
 
@@ -37,17 +41,22 @@ def not_found(error):
 @app.route('/caller_id', methods=['GET'])
 def get_person_phone_number():
     number = (request.args.get('phone_number'))
+    validate_input(number)
     result = get_by_phone_number(number)
     if len(result) == 0:
         abort(404, "phone number does not exist")
     return result
 
-
 @app.route('/remove', methods=['POST'])
 def remove_phone_number():
     number = (request.args.get('phone_number'))
+    validate_input(number)
     delete_by_phone_number(number)
     return make_response({}, 202)
+def validate_input(number):
+    if number is None or re.fullmatch('^[0-9]{3}-[0-9]{3}-[0-9]{4}$', number) is None:
+        abort(400, 'number provided was not in phone number format')
+
 
 
 if __name__ == '__main__':
